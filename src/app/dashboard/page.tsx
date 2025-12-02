@@ -37,13 +37,16 @@ export default function DashboardPage() {
   });
 
   useEffect(() => {
-    // Check if user is logged in
+    // Check if user is logged in and fetch stats
     const checkAuth = async () => {
       try {
         // For now, we'll use localStorage
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
-          setUser(JSON.parse(storedUser));
+          const userData = JSON.parse(storedUser);
+          setUser(userData);
+          // Fetch dashboard stats
+          await fetchDashboardStats(userData.id);
         } else {
           router.push('/login');
         }
@@ -57,6 +60,20 @@ export default function DashboardPage() {
 
     checkAuth();
   }, [router]);
+
+  const fetchDashboardStats = async (userId: string) => {
+    try {
+      const res = await fetch(`/api/dashboard/stats?userId=${userId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setStats(data.stats);
+      } else {
+        console.error('Failed to fetch dashboard stats');
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+    }
+  };
 
   const handleLogout = async () => {
     try {

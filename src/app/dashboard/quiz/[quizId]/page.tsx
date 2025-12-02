@@ -28,6 +28,9 @@ interface QuizQuestion {
 interface QuizData {
   quizId: string;
   questions: QuizQuestion[];
+  topic?: string;
+  difficulty?: string;
+  questionCount?: number;
 }
 
 export default function QuizTakingPage() {
@@ -83,7 +86,7 @@ export default function QuizTakingPage() {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!quizData) return;
 
     let correctCount = 0;
@@ -103,6 +106,31 @@ export default function QuizTakingPage() {
     setScore(calculatedScore);
     setQuizData({ ...quizData, questions: updatedQuestions });
     setShowResults(true);
+
+    // Save quiz results to database
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+
+        await fetch('/api/quiz/results', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            quiz_id: quizData.quizId,
+            user_id: user.id,
+            topic: quizData.topic || 'General',
+            difficulty: quizData.difficulty || 'medium',
+            total_questions: quizData.questions.length,
+            correct_answers: correctCount,
+            score: calculatedScore,
+            answers: updatedQuestions,
+          }),
+        });
+      }
+    } catch (error) {
+      console.error('Failed to save quiz results:', error);
+    }
   };
 
   const handleRetry = () => {

@@ -75,7 +75,13 @@ CRITICAL: Return ONLY the JSON array with no markdown formatting, no \`\`\`json\
     // Generate a simple quiz ID
     const quizId = `quiz_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    return NextResponse.json({ quizId, questions });
+    return NextResponse.json({
+      quizId,
+      questions,
+      topic,
+      difficulty,
+      questionCount
+    });
   } catch (error: any) {
     console.error('Quiz generation error:', error);
     return NextResponse.json(
