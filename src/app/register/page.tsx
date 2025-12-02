@@ -51,6 +51,15 @@ export default function RegisterPage() {
         throw new Error(data.error || 'Registration failed');
       }
 
+      // Store user data with full_name extracted from user_metadata
+      if (typeof window !== 'undefined' && data.user) {
+        const userData = {
+          ...data.user,
+          full_name: data.user.user_metadata?.full_name || null,
+        };
+        localStorage.setItem('user', JSON.stringify(userData));
+      }
+
       // Redirect to dashboard
       router.push('/dashboard');
     } catch (err: any) {

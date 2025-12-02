@@ -33,9 +33,13 @@ export default function LoginPage() {
         throw new Error(data.error || 'Login failed');
       }
 
-      // Store user data
+      // Store user data with full_name extracted from user_metadata
       if (typeof window !== 'undefined') {
-        localStorage.setItem('user', JSON.stringify(data.user));
+        const userData = {
+          ...data.user,
+          full_name: data.user.user_metadata?.full_name || null,
+        };
+        localStorage.setItem('user', JSON.stringify(userData));
       }
 
       // Redirect to dashboard

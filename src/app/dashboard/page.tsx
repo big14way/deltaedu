@@ -147,7 +147,7 @@ export default function DashboardPage() {
         {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">
-            Welcome back, {user?.full_name || 'Student'}!
+            Welcome back, {user?.full_name || user?.email?.split('@')[0] || 'Student'}!
           </h1>
           <p className="text-muted-foreground">
             Ready to continue your learning journey?
