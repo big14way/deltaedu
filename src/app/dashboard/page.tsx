@@ -25,6 +25,13 @@ interface DashboardStats {
   averageScore: number;
 }
 
+interface Activity {
+  id: string;
+  activity_type: string;
+  activity_data: any;
+  created_at: string;
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
@@ -35,6 +42,7 @@ export default function DashboardPage() {
     studyTime: 0,
     averageScore: 0,
   });
+  const [activities, setActivities] = useState<Activity[]>([]);
 
   useEffect(() => {
     // Check if user is logged in and fetch stats
@@ -45,8 +53,9 @@ export default function DashboardPage() {
         if (storedUser) {
           const userData = JSON.parse(storedUser);
           setUser(userData);
-          // Fetch dashboard stats
+          // Fetch dashboard stats and activities
           await fetchDashboardStats(userData.id);
+          await fetchRecentActivities(userData.id);
         } else {
           router.push('/login');
         }
@@ -72,6 +81,20 @@ export default function DashboardPage() {
       }
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
+    }
+  };
+
+  const fetchRecentActivities = async (userId: string) => {
+    try {
+      const res = await fetch(`/api/activity/recent?userId=${userId}&limit=5`);
+      if (res.ok) {
+        const data = await res.json();
+        setActivities(data.activities);
+      } else {
+        console.error('Failed to fetch activities');
+      }
+    } catch (error) {
+      console.error('Error fetching activities:', error);
     }
   };
 
@@ -254,11 +277,53 @@ export default function DashboardPage() {
         <div>
           <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
           <div className="bg-card border rounded-lg p-6">
-            <div className="text-center py-8 text-muted-foreground">
-              <BookOpen className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>No recent activity yet</p>
-              <p className="text-sm mt-1">Start by uploading your first note!</p>
-            </div>
+            {activities.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <BookOpen className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p>No recent activity yet</p>
+                <p className="text-sm mt-1">Start by uploading your first note!</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {activities.map((activity) => {
+                  const icon =
+                    activity.activity_type === 'note_upload' ? (
+                      <FileText className="h-5 w-5 text-primary" />
+                    ) : activity.activity_type === 'quiz_completed' ? (
+                      <Trophy className="h-5 w-5 text-primary" />
+                    ) : (
+                      <MessageSquare className="h-5 w-5 text-primary" />
+                    );
+
+                  const message =
+                    activity.activity_type === 'note_upload'
+                      ? `Uploaded "${activity.activity_data?.title || 'a note'}"`
+                      : activity.activity_type === 'quiz_completed'
+                      ? `Completed quiz on ${activity.activity_data?.topic || 'a topic'} (Score: ${activity.activity_data?.score || 0}%)`
+                      : 'Had a chat session';
+
+                  const timeAgo = new Date(activity.created_at).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  });
+
+                  return (
+                    <div
+                      key={activity.id}
+                      className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="p-2 rounded-lg bg-primary/10">{icon}</div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">{message}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{timeAgo}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </main>

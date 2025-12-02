@@ -49,6 +49,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Log activity
+    try {
+      await supabase.from('user_activities').insert({
+        user_id,
+        activity_type: 'quiz_completed',
+        activity_data: {
+          quiz_id,
+          topic,
+          score,
+          correct_answers,
+          total_questions,
+        },
+      });
+    } catch (activityError) {
+      console.error('Failed to log activity:', activityError);
+      // Don't fail the request if activity logging fails
+    }
+
     return NextResponse.json({
       success: true,
       result: data,

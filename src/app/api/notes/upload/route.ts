@@ -127,6 +127,21 @@ export async function POST(request: Request) {
       );
     }
 
+    // Log activity
+    try {
+      await supabase.from('user_activities').insert({
+        user_id: userId,
+        activity_type: 'note_upload',
+        activity_data: {
+          note_id: note.id,
+          title: title,
+        },
+      });
+    } catch (activityError) {
+      console.error('Failed to log activity:', activityError);
+      // Don't fail the request if activity logging fails
+    }
+
     return NextResponse.json({ note, message: 'Upload successful' });
   } catch (error: any) {
     console.error('Upload API error:', error);
