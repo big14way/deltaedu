@@ -37,6 +37,10 @@ export default function GenerateQuizPage() {
       if (!res.ok) throw new Error('Failed to generate quiz');
 
       const data = await res.json();
+
+      // Store quiz data in localStorage for the quiz page to access
+      localStorage.setItem(`quiz_${data.quizId}`, JSON.stringify(data));
+
       // Redirect to quiz taking page
       router.push(`/dashboard/quiz/${data.quizId}`);
     } catch (error) {

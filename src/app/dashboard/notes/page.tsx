@@ -34,7 +34,15 @@ export default function NotesPage() {
 
   const fetchNotes = async () => {
     try {
-      const res = await fetch('/api/notes');
+      // Get userId from localStorage
+      const userStr = localStorage.getItem('user');
+      if (!userStr) {
+        setLoading(false);
+        return;
+      }
+
+      const user = JSON.parse(userStr);
+      const res = await fetch(`/api/notes?userId=${user.id}`);
       if (res.ok) {
         const data = await res.json();
         setNotes(data.notes || []);

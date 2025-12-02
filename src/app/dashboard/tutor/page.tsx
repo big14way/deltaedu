@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Sparkles,
@@ -18,11 +19,16 @@ interface Message {
 }
 
 export default function TutorPage() {
+  const searchParams = useSearchParams();
+  const noteId = searchParams.get('noteId');
+
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
       content:
-        "Hello! I'm your AI tutor. I'm here to help you understand your study materials. Ask me anything!",
+        noteId
+          ? "Hello! I'm your AI tutor. I can see your study material and I'm ready to help you understand it better. Ask me anything!"
+          : "Hello! I'm your AI tutor. I'm here to help you understand your study materials. Ask me anything!",
     },
   ]);
   const [input, setInput] = useState('');
@@ -47,11 +53,17 @@ export default function TutorPage() {
     setLoading(true);
 
     try {
+      // Get userId from localStorage
+      const userStr = localStorage.getItem('user');
+      const userId = userStr ? JSON.parse(userStr).id : null;
+
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: [...messages, { role: 'user', content: userMessage }],
+          noteId: noteId || null,
+          userId: userId,
         }),
       });
 

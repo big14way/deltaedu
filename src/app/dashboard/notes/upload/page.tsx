@@ -50,9 +50,17 @@ export default function UploadNotesPage() {
     setUploading(true);
 
     try {
+      // Get user session from localStorage
+      const userStr = localStorage.getItem('user');
+      if (!userStr) {
+        router.push('/login');
+        return;
+      }
+
       const formData = new FormData();
       formData.append('title', noteTitle);
       formData.append('description', noteDescription);
+      formData.append('userId', JSON.parse(userStr).id);
       files.forEach((file) => {
         formData.append('files', file);
       });
