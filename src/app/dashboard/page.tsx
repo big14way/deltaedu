@@ -16,6 +16,7 @@ import {
   User,
   Clock,
   TrendingUp,
+  RefreshCw,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -37,6 +38,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState<DashboardStats>({
     totalNotes: 0,
     quizzesTaken: 0,
@@ -46,6 +48,8 @@ export default function DashboardPage() {
   const [activities, setActivities] = useState<Activity[]>([]);
 
   useEffect(() => {
+    let currentUserId: string | null = null;
+
     // Check if user is logged in and fetch stats
     const checkAuth = async () => {
       try {
@@ -55,6 +59,7 @@ export default function DashboardPage() {
         } = await supabase.auth.getSession();
 
         if (session?.user) {
+          currentUserId = session.user.id;
           setUser(session.user);
           // Fetch dashboard stats and activities
           await fetchDashboardStats(session.user.id);
@@ -74,9 +79,9 @@ export default function DashboardPage() {
 
     // Refresh stats when returning to the page
     const handleVisibilityChange = () => {
-      if (!document.hidden && user) {
-        fetchDashboardStats(user.id);
-        fetchRecentActivities(user.id);
+      if (!document.hidden && currentUserId) {
+        fetchDashboardStats(currentUserId);
+        fetchRecentActivities(currentUserId);
       }
     };
 
@@ -85,7 +90,7 @@ export default function DashboardPage() {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [router, user]);
+  }, [router]);
 
   const fetchDashboardStats = async (userId: string) => {
     try {
@@ -114,6 +119,25 @@ export default function DashboardPage() {
       }
     } catch (error) {
       console.error('Error fetching activities:', error);
+    }
+  };
+
+  const handleRefresh = async () => {
+    if (!user || refreshing) return;
+
+    console.log('[Dashboard] Manual refresh triggered');
+    setRefreshing(true);
+
+    try {
+      await Promise.all([
+        fetchDashboardStats(user.id),
+        fetchRecentActivities(user.id)
+      ]);
+      console.log('[Dashboard] Manual refresh completed');
+    } catch (error) {
+      console.error('[Dashboard] Refresh error:', error);
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -188,13 +212,24 @@ export default function DashboardPage() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         {/* Welcome Section */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">
-            Welcome back, {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Student'}!
-          </h1>
-          <p className="text-muted-foreground">
-            Ready to continue your learning journey?
-          </p>
+        <div className="mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">
+              Welcome back, {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Student'}!
+            </h1>
+            <p className="text-muted-foreground">
+              Ready to continue your learning journey?
+            </p>
+          </div>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
+            title="Refresh dashboard stats"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </button>
         </div>
 
         {/* Stats Cards */}
