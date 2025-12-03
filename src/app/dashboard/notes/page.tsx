@@ -2,8 +2,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
+import { createClient } from '@/lib/supabase/client';
 import {
   FileText,
   Sparkles,
@@ -22,25 +24,32 @@ interface Note {
 }
 
 export default function NotesPage() {
+  const router = useRouter();
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchNotes();
-  }, []);
+    async function initializePage() {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
 
-  const fetchNotes = async () => {
-    try {
-      // Get userId from localStorage
-      const userStr = localStorage.getItem('user');
-      if (!userStr) {
-        setLoading(false);
+      if (!session) {
+        router.push('/login');
         return;
       }
 
-      const user = JSON.parse(userStr);
-      const res = await fetch(`/api/notes?userId=${user.id}`);
+      setUserId(session.user.id);
+      await fetchNotes(session.user.id);
+    }
+
+    initializePage();
+  }, [router]);
+
+  const fetchNotes = async (userIdParam: string) => {
+    try {
+      const res = await fetch(`/api/notes?userId=${userIdParam}`);
       if (res.ok) {
         const data = await res.json();
         setNotes(data.notes || []);
