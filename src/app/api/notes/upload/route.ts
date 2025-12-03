@@ -9,13 +9,22 @@ export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
   try {
+    console.log('[Upload API] Request received');
     const formData = await request.formData();
     const title = formData.get('title') as string;
     const description = formData.get('description') as string;
     const userId = formData.get('userId') as string;
     const files = formData.getAll('files') as File[];
 
+    console.log('[Upload API] Form data parsed:', {
+      title,
+      userId,
+      fileCount: files.length,
+      fileNames: files.map(f => f.name)
+    });
+
     if (!title || files.length === 0 || !userId) {
+      console.log('[Upload API] Validation failed');
       return NextResponse.json(
         { error: 'Title, files, and userId are required' },
         { status: 400 }
@@ -88,18 +97,22 @@ export async function POST(request: Request) {
 
     // Create a notebook first or get the default one
     // For simplicity, create a default notebook for this user if it doesn't exist
-    const { data: notebook } = await supabase
+    const { data: notebook, error: notebookFetchError } = await supabase
       .from('notebooks')
       .select('id')
       .eq('user_id', userId)
       .eq('title', 'My Notes')
       .single();
 
+    if (notebookFetchError && notebookFetchError.code !== 'PGRST116') {
+      console.error('Error fetching notebook:', notebookFetchError);
+    }
+
     let notebookId = notebook?.id;
 
     if (!notebookId) {
       // Create default notebook
-      const { data: newNotebook } = await supabase
+      const { data: newNotebook, error: notebookCreateError } = await supabase
         .from('notebooks')
         .insert({
           user_id: userId,
@@ -107,6 +120,15 @@ export async function POST(request: Request) {
         })
         .select('id')
         .single();
+
+      if (notebookCreateError) {
+        console.error('Error creating notebook:', notebookCreateError);
+        return NextResponse.json(
+          { error: 'Failed to create notebook', details: notebookCreateError.message },
+          { status: 500 }
+        );
+      }
+
       notebookId = newNotebook?.id;
     }
 
@@ -125,11 +147,23 @@ export async function POST(request: Request) {
 
     if (noteError) {
       console.error('Note creation error:', noteError);
+      console.error('Note creation error details:', {
+        code: noteError.code,
+        message: noteError.message,
+        details: noteError.details,
+        hint: noteError.hint,
+        userId,
+        notebookId,
+        titleLength: title?.length,
+        contentLength: fileContents.join('\n\n').length
+      });
       return NextResponse.json(
-        { error: 'Failed to create note' },
+        { error: 'Failed to create note', details: noteError.message },
         { status: 500 }
       );
     }
+
+    console.log('[Upload API] Note created successfully:', { noteId: note.id, title: note.title });
 
     // Log activity
     try {
@@ -146,6 +180,7 @@ export async function POST(request: Request) {
       // Don't fail the request if activity logging fails
     }
 
+    console.log('[Upload API] Returning success response');
     return NextResponse.json({ note, message: 'Upload successful' });
   } catch (error: any) {
     console.error('Upload API error:', error);
