@@ -46,47 +46,65 @@ export default function UploadNotesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (files.length === 0 || !noteTitle) return;
+    console.log('[Upload Page] Form submitted');
+
+    if (files.length === 0 || !noteTitle) {
+      console.log('[Upload Page] Validation failed:', { filesLength: files.length, noteTitle });
+      return;
+    }
 
     setUploading(true);
 
     try {
       // Get user session from localStorage
       const userStr = localStorage.getItem('user');
+      console.log('[Upload Page] User from localStorage:', userStr ? 'Found' : 'Not found');
+
       if (!userStr) {
+        console.log('[Upload Page] No user found, redirecting to login');
         router.push('/login');
         return;
       }
 
+      const user = JSON.parse(userStr);
+      console.log('[Upload Page] User parsed:', { id: user.id });
+
       const formData = new FormData();
       formData.append('title', noteTitle);
       formData.append('description', noteDescription);
-      formData.append('userId', JSON.parse(userStr).id);
+      formData.append('userId', user.id);
       files.forEach((file) => {
         formData.append('files', file);
       });
+
+      console.log('[Upload Page] FormData prepared, sending request to /api/notes/upload');
 
       const res = await fetch('/api/notes/upload', {
         method: 'POST',
         body: formData,
       });
 
+      console.log('[Upload Page] Response received:', { status: res.status, ok: res.ok });
+
       const data = await res.json();
+      console.log('[Upload Page] Response data:', data);
 
       if (!res.ok) {
-        console.error('Upload failed:', data);
+        console.error('[Upload Page] Upload failed:', data);
         throw new Error(data.details || data.error || 'Upload failed');
       }
 
+      console.log('[Upload Page] Upload successful!');
       toast.success('Notes uploaded successfully!');
       setSuccess(true);
       setTimeout(() => {
         router.push('/dashboard/notes');
       }, 2000);
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('[Upload Page] Upload error:', error);
       toast.error('Failed to upload notes. Please try again.');
     } finally {
+      console.log('[Upload Page] Upload finished, resetting uploading state');
       setUploading(false);
     }
   };
