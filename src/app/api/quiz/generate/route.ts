@@ -3,6 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
 import { createAdminClient } from '@/lib/supabase/server';
 
+// Use Node.js runtime instead of Edge runtime
+export const runtime = 'nodejs';
+
 export async function POST(request: NextRequest) {
   try {
     // Check if Groq API key is available
@@ -15,7 +18,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const groq = new Groq({ apiKey });
+    const groq = new Groq({
+      apiKey,
+      dangerouslyAllowBrowser: false,
+    });
 
     const body = await request.json();
     const { topic, difficulty, questionCount, userId } = body;
