@@ -1,11 +1,12 @@
 // src/app/dashboard/notes/upload/page.tsx
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { useDropzone } from 'react-dropzone';
+import { createClient } from '@/lib/supabase/client';
 import {
   Upload,
   FileText,
@@ -23,6 +24,28 @@ export default function UploadNotesPage() {
   const [noteDescription, setNoteDescription] = useState('');
   const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Get user from Supabase session
+  useEffect(() => {
+    async function getUser() {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        console.log('[Upload Page] No session found, redirecting to login');
+        router.push('/login');
+        return;
+      }
+
+      console.log('[Upload Page] User session found:', session.user.id);
+      setUserId(session.user.id);
+      setLoading(false);
+    }
+
+    getUser();
+  }, [router]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setFiles((prev) => [...prev, ...acceptedFiles]);
@@ -53,26 +76,22 @@ export default function UploadNotesPage() {
       return;
     }
 
+    if (!userId) {
+      console.log('[Upload Page] No userId available');
+      toast.error('Please log in to upload notes');
+      router.push('/login');
+      return;
+    }
+
     setUploading(true);
 
     try {
-      // Get user session from localStorage
-      const userStr = localStorage.getItem('user');
-      console.log('[Upload Page] User from localStorage:', userStr ? 'Found' : 'Not found');
-
-      if (!userStr) {
-        console.log('[Upload Page] No user found, redirecting to login');
-        router.push('/login');
-        return;
-      }
-
-      const user = JSON.parse(userStr);
-      console.log('[Upload Page] User parsed:', { id: user.id });
+      console.log('[Upload Page] Using userId from session:', userId);
 
       const formData = new FormData();
       formData.append('title', noteTitle);
       formData.append('description', noteDescription);
-      formData.append('userId', user.id);
+      formData.append('userId', userId);
       files.forEach((file) => {
         formData.append('files', file);
       });
@@ -108,6 +127,17 @@ export default function UploadNotesPage() {
       setUploading(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (success) {
     return (
