@@ -1,8 +1,11 @@
 // src/app/api/upload/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { openai } from '@/lib/openai';
-import { SYSTEM_PROMPTS, createSummaryPrompt } from '@/lib/prompts';
+import { createAdminClient } from '@/lib/supabase/server';
+import Groq from 'groq-sdk';
+
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY || '',
+});
 
 // Dynamic import for pdf-parse to handle edge runtime issues
 async function extractPdfText(buffer: Buffer): Promise<string> {
@@ -19,17 +22,18 @@ async function extractDocxText(buffer: Buffer): Promise<string> {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createServerSupabaseClient();
-    
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const supabase = createAdminClient();
 
+    // Get form data from request
     const formData = await request.formData();
+    const userId = formData.get('userId') as string;
     const file = formData.get('file') as File;
     const notebook_id = formData.get('notebook_id') as string;
     const title = formData.get('title') as string;
+
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID is required' }, { status: 401 });
+    }
 
     if (!file) {
       return NextResponse.json(
@@ -89,19 +93,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate summary using AI
+    // Generate summary using Groq AI
     let summary = '';
     try {
-      const completion = await openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+      const completion = await groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
         messages: [
-          { role: 'system', content: SYSTEM_PROMPTS.SUMMARIZER },
-          { role: 'user', content: createSummaryPrompt(extractedText.slice(0, 8000)) },
+          {
+            role: 'system',
+            content: 'You are an expert summarizer. Create concise, accurate summaries of study materials that highlight key points and main ideas.'
+          },
+          {
+            role: 'user',
+            content: `Summarize the following study material in 2-3 concise paragraphs:\n\n${extractedText.slice(0, 8000)}`
+          },
         ],
         temperature: 0.5,
         max_tokens: 500,
       });
-      summary = completion.choices[0].message.content || '';
+      summary = completion.choices[0]?.message?.content || '';
     } catch (aiError) {
       console.error('Summary generation error:', aiError);
       // Continue without summary
@@ -114,7 +124,7 @@ export async function POST(request: NextRequest) {
       .from('notes')
       .insert({
         notebook_id,
-        user_id: user.id,
+        user_id: userId,
         title: noteTitle,
         content: extractedText,
         summary,
@@ -143,15 +153,14 @@ export async function POST(request: NextRequest) {
 // Upload text directly (for copy-paste)
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = createServerSupabaseClient();
-    
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const supabase = createAdminClient();
 
     const body = await request.json();
-    const { notebook_id, title, content } = body;
+    const { notebook_id, title, content, userId } = body;
+
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID is required' }, { status: 401 });
+    }
 
     if (!notebook_id || !title || !content) {
       return NextResponse.json(
@@ -160,19 +169,25 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Generate summary
+    // Generate summary using Groq AI
     let summary = '';
     try {
-      const completion = await openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+      const completion = await groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
         messages: [
-          { role: 'system', content: SYSTEM_PROMPTS.SUMMARIZER },
-          { role: 'user', content: createSummaryPrompt(content.slice(0, 8000)) },
+          {
+            role: 'system',
+            content: 'You are an expert summarizer. Create concise, accurate summaries of study materials that highlight key points and main ideas.'
+          },
+          {
+            role: 'user',
+            content: `Summarize the following study material in 2-3 concise paragraphs:\n\n${content.slice(0, 8000)}`
+          },
         ],
         temperature: 0.5,
         max_tokens: 500,
       });
-      summary = completion.choices[0].message.content || '';
+      summary = completion.choices[0]?.message?.content || '';
     } catch (aiError) {
       console.error('Summary generation error:', aiError);
     }
@@ -182,7 +197,7 @@ export async function PUT(request: NextRequest) {
       .from('notes')
       .insert({
         notebook_id,
-        user_id: user.id,
+        user_id: userId,
         title,
         content,
         summary,
