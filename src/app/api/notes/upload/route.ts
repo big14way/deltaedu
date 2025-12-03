@@ -12,7 +12,6 @@ export async function POST(request: Request) {
     console.log('[Upload API] Request received');
     const formData = await request.formData();
     const title = formData.get('title') as string;
-    const description = formData.get('description') as string;
     const userId = formData.get('userId') as string;
     const files = formData.getAll('files') as File[];
 
@@ -139,7 +138,6 @@ export async function POST(request: Request) {
         user_id: userId,
         notebook_id: notebookId,
         title,
-        description: description || null,
         content: fileContents.join('\n\n'),
       })
       .select()
