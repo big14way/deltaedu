@@ -116,9 +116,12 @@ export default function UploadNotesPage() {
       console.log('[Upload Page] Upload successful!');
       toast.success('Notes uploaded successfully!');
       setSuccess(true);
+
+      // Invalidate Next.js cache and redirect
+      router.refresh();
       setTimeout(() => {
         router.push('/dashboard/notes');
-      }, 2000);
+      }, 1500);
     } catch (error) {
       console.error('[Upload Page] Upload error:', error);
       toast.error('Failed to upload notes. Please try again.');

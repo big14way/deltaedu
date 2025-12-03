@@ -19,7 +19,8 @@ import {
 interface Note {
   id: string;
   title: string;
-  description: string;
+  content: string;
+  summary: string | null;
   created_at: string;
 }
 
@@ -31,6 +32,8 @@ export default function NotesPage() {
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
+    let currentUserId: string | null = null;
+
     async function initializePage() {
       const supabase = createClient();
       const { data: { session } } = await supabase.auth.getSession();
@@ -40,18 +43,35 @@ export default function NotesPage() {
         return;
       }
 
+      currentUserId = session.user.id;
       setUserId(session.user.id);
       await fetchNotes(session.user.id);
     }
 
     initializePage();
+
+    // Refresh notes when returning to the page
+    const handleVisibilityChange = () => {
+      if (!document.hidden && currentUserId) {
+        console.log('[Notes Page] Tab visible, refreshing notes');
+        fetchNotes(currentUserId);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [router]);
 
   const fetchNotes = async (userIdParam: string) => {
     try {
-      const res = await fetch(`/api/notes?userId=${userIdParam}`);
+      // Add cache busting to ensure fresh data
+      const res = await fetch(`/api/notes?userId=${userIdParam}&_t=${Date.now()}`);
       if (res.ok) {
         const data = await res.json();
+        console.log('[Notes Page] Notes fetched:', data.notes?.length || 0);
         setNotes(data.notes || []);
       } else {
         toast.error('Failed to load notes. Please try again.');
@@ -164,7 +184,7 @@ export default function NotesPage() {
 
                 <h3 className="font-semibold mb-2 line-clamp-2">{note.title}</h3>
                 <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                  {note.description || 'No description'}
+                  {note.summary || note.content.substring(0, 100) + '...'}
                 </p>
 
                 <div className="flex gap-2">
