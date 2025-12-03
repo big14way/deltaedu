@@ -2,6 +2,7 @@
 const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['pdf-parse'],
+    instrumentationHook: true,
   },
   images: {
     remotePatterns: [
