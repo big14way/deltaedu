@@ -1,7 +1,10 @@
 // src/app/api/upload/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
-import Groq from 'groq-sdk';
+import { createGroqChatCompletion } from '@/lib/groq-client';
+
+// Use Node.js runtime instead of Edge runtime
+export const runtime = 'nodejs';
 
 // Dynamic import for pdf-parse to handle edge runtime issues
 async function extractPdfText(buffer: Buffer): Promise<string> {
@@ -97,8 +100,7 @@ export async function POST(request: NextRequest) {
         console.error('GROQ_API_KEY is not set - skipping summary generation');
         // Continue without summary
       } else {
-        const groq = new Groq({ apiKey });
-        const completion = await groq.chat.completions.create({
+        const completion = await createGroqChatCompletion(apiKey, {
           model: 'llama-3.3-70b-versatile',
           messages: [
             {
@@ -180,8 +182,7 @@ export async function PUT(request: NextRequest) {
         console.error('GROQ_API_KEY is not set - skipping summary generation');
         // Continue without summary
       } else {
-        const groq = new Groq({ apiKey });
-        const completion = await groq.chat.completions.create({
+        const completion = await createGroqChatCompletion(apiKey, {
           model: 'llama-3.3-70b-versatile',
           messages: [
             {
