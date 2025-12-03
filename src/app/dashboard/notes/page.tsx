@@ -9,8 +9,6 @@ import {
   ArrowLeft,
   PlusCircle,
   Search,
-  Calendar,
-  Brain,
   MessageSquare,
   BookOpen,
 } from 'lucide-react';
@@ -20,7 +18,6 @@ interface Note {
   title: string;
   description: string;
   created_at: string;
-  file_count: number;
 }
 
 export default function NotesPage() {
@@ -153,11 +150,6 @@ export default function NotesPage() {
                 <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
                   {note.description || 'No description'}
                 </p>
-
-                <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
-                  <Calendar className="h-3 w-3" />
-                  <span>{note.file_count} file(s)</span>
-                </div>
 
                 <div className="flex gap-2">
                   <Link

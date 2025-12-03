@@ -114,6 +114,7 @@ export async function POST(request: Request) {
         user_id: userId,
         notebook_id: notebookId,
         title,
+        description: description || null,
         content: fileContents.join('\n\n'),
       })
       .select()
