@@ -57,6 +57,36 @@ export default function QuizTakingPage() {
     loadQuizData();
   }, []);
 
+  // Keyboard navigation for quiz
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't interfere if user is typing in an input
+      if ((e.target as HTMLElement).tagName === 'INPUT') return;
+
+      if (!quizData) return;
+
+      if (e.key === 'ArrowLeft' && currentIndex > 0) {
+        e.preventDefault();
+        handlePrevious();
+      } else if (e.key === 'ArrowRight' && currentIndex < quizData.questions.length - 1) {
+        e.preventDefault();
+        handleNext();
+      } else if (e.key >= '1' && e.key <= '9') {
+        const optionIndex = parseInt(e.key) - 1;
+        const current = quizData.questions[currentIndex];
+        if (current && optionIndex < current.options.length) {
+          e.preventDefault();
+          handleAnswerSelect(optionIndex);
+        }
+      }
+    };
+
+    if (!showResults && quizData) {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [currentIndex, quizData, showResults]);
+
   const loadQuizData = async () => {
     try {
       // Get user ID for tracking
@@ -334,6 +364,11 @@ export default function QuizTakingPage() {
 
       {/* Quiz Content */}
       <main className="container mx-auto px-4 py-8 max-w-3xl">
+        <div className="mb-4 text-center">
+          <p className="text-xs text-muted-foreground">
+            💡 Tip: Use arrow keys to navigate, numbers 1-4 to select answers, Enter/Space to confirm
+          </p>
+        </div>
         <div className="bg-card border rounded-lg p-6">
           {/* Progress Bar */}
           <div className="mb-6">
@@ -353,14 +388,23 @@ export default function QuizTakingPage() {
 
           {/* Question */}
           <div className="mb-6">
-            <h2 className="text-2xl font-semibold mb-6">{currentQuestion.question}</h2>
+            <h2 id="question-text" className="text-2xl font-semibold mb-6">{currentQuestion.question}</h2>
 
             {/* Options */}
-            <div className="space-y-3">
+            <div className="space-y-3" role="radiogroup" aria-labelledby="question-text">
               {currentQuestion.options.map((option, idx) => (
                 <div
                   key={idx}
+                  role="radio"
+                  aria-checked={answers[currentIndex] === idx}
+                  tabIndex={0}
                   onClick={() => handleAnswerSelect(idx)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleAnswerSelect(idx);
+                    }
+                  }}
                   className={`p-4 rounded-lg border cursor-pointer transition-all ${
                     answers[currentIndex] === idx
                       ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
@@ -374,6 +418,7 @@ export default function QuizTakingPage() {
                           ? 'border-primary bg-primary'
                           : 'border-muted-foreground/30'
                       }`}
+                      aria-hidden="true"
                     >
                       {answers[currentIndex] === idx && (
                         <div className="w-2 h-2 bg-white rounded-full" />
@@ -421,11 +466,13 @@ export default function QuizTakingPage() {
         {/* Quick Navigation */}
         <div className="mt-6 bg-card border rounded-lg p-4">
           <p className="text-sm font-medium mb-3">Quick Navigation</p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" role="navigation" aria-label="Question navigation">
             {quizData.questions.map((_, idx) => (
               <button
                 key={idx}
                 onClick={() => setCurrentIndex(idx)}
+                aria-label={`Go to question ${idx + 1}${answers[idx] !== undefined ? ' (answered)' : ''}`}
+                aria-current={idx === currentIndex ? 'step' : undefined}
                 className={`w-10 h-10 rounded-md font-medium transition-colors ${
                   idx === currentIndex
                     ? 'bg-primary text-primary-foreground'

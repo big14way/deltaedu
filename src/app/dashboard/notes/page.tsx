@@ -101,13 +101,16 @@ export default function NotesPage() {
         {/* Search Bar */}
         <div className="mb-6">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" aria-hidden="true" />
+            <label htmlFor="notes-search" className="sr-only">Search notes</label>
             <input
+              id="notes-search"
               type="text"
               placeholder="Search notes..."
               className="w-full pl-10 pr-4 py-2 border rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-primary"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              aria-label="Search notes by title or description"
             />
           </div>
         </div>

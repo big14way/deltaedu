@@ -189,20 +189,24 @@ export default function TutorPage() {
         {/* Input Form */}
         <form onSubmit={handleSubmit} className="flex-shrink-0">
           <div className="flex gap-2">
+            <label htmlFor="chat-input" className="sr-only">Ask a question</label>
             <input
+              id="chat-input"
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask a question..."
               className="flex-1 px-4 py-3 border rounded-lg bg-card focus:outline-none focus:ring-2 focus:ring-primary"
               disabled={loading}
+              aria-label="Chat message input"
             />
             <button
               type="submit"
               disabled={loading || !input.trim()}
               className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              aria-label="Send message"
             >
-              <Send className="h-5 w-5" />
+              <Send className="h-5 w-5" aria-hidden="true" />
               Send
             </button>
           </div>

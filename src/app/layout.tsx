@@ -20,6 +20,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
+        <a href="#main-content" className="skip-link">
+          Skip to main content
+        </a>
         <Toaster
           position="top-right"
           toastOptions={{
@@ -44,7 +47,7 @@ export default function RootLayout({
             },
           }}
         />
-        <main className="min-h-screen bg-background">
+        <main id="main-content" className="min-h-screen bg-background">
           {children}
         </main>
       </body>
