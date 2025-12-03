@@ -1,7 +1,7 @@
 // src/app/dashboard/tutor/page.tsx
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -23,7 +23,7 @@ interface Message {
   content: string;
 }
 
-export default function TutorPage() {
+function TutorPageContent() {
   const searchParams = useSearchParams();
   const noteId = searchParams.get('noteId');
 
@@ -216,5 +216,17 @@ export default function TutorPage() {
         </form>
       </main>
     </div>
+  );
+}
+
+export default function TutorPage() {
+  return (
+    <Suspense fallback={
+      <div className="h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    }>
+      <TutorPageContent />
+    </Suspense>
   );
 }
